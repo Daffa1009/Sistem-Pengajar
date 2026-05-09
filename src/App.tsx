@@ -133,7 +133,7 @@ export default function App() {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3-flash-preview",
         contents: userPrompt,
         config: {
           systemInstruction: systemInstruction,
@@ -143,7 +143,7 @@ export default function App() {
       setOutput(response.text || "Tidak ada hasil.");
     } catch (error: any) {
       console.error("AI Error:", error);
-      setOutput(`Terjadi kesalahan saat memproses AI: ${error.message || "Mohon coba lagi."}`);
+      setOutput(`Terjadi kesalahan AI: ${error.message || "Mohon coba lagi."}`);
     } finally {
       setIsLoading(false);
     }
@@ -229,28 +229,28 @@ export default function App() {
             )}
           </section>
 
-          <section className="bg-white rounded-2xl p-5 border border-retro-purple/10 shadow-sm flex flex-col min-h-0 relative">
-            {!pdfText && (
-              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
-                <div className="bg-retro-purple text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
-                  Unggah File Untuk Membuka
+          <AnimatePresence>
+            {pdfText && (
+              <motion.section 
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-white rounded-2xl p-5 border border-retro-purple/10 shadow-sm flex flex-col min-h-0"
+              >
+                <h3 className="text-[10px] font-black text-retro-purple/30 uppercase tracking-[0.2em] mb-4">Command Center</h3>
+                
+                {/* Tabs Navigation */}
+                <div className="p-1 bg-retro-purple/5 rounded-xl flex mb-4">
+                  {(['questions', 'summary', 'slides', 'chat'] as AppTab[]).map((tab) => (
+                    <button 
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all uppercase tracking-wider ${activeTab === tab ? 'bg-fresh-orange text-white shadow-lg' : 'text-retro-purple/50 hover:text-retro-purple'}`}
+                    >
+                      {tab === 'questions' ? 'Soal' : tab === 'summary' ? 'Ringkas' : tab === 'slides' ? 'Slide' : 'Tanya'}
+                    </button>
+                  ))}
                 </div>
-              </div>
-            )}
-            <h3 className="text-[10px] font-black text-retro-purple/30 uppercase tracking-[0.2em] mb-4">Command Center</h3>
-            
-            {/* Tabs Navigation */}
-            <div className="p-1 bg-retro-purple/5 rounded-xl flex mb-4">
-              {(['questions', 'summary', 'slides', 'chat'] as AppTab[]).map((tab) => (
-                <button 
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all uppercase tracking-wider ${activeTab === tab ? 'bg-fresh-orange text-white shadow-lg' : 'text-retro-purple/50 hover:text-retro-purple'}`}
-                >
-                  {tab === 'questions' ? 'Soal' : tab === 'summary' ? 'Ringkas' : tab === 'slides' ? 'Slide' : 'Tanya'}
-                </button>
-              ))}
-            </div>
 
                 <div className="space-y-4">
                   {activeTab === 'questions' && (
@@ -325,7 +325,9 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              </section>
+              </motion.section>
+            )}
+          </AnimatePresence>
         </aside>
 
         {/* Output Section */}
