@@ -18,13 +18,10 @@ import {
   Maximize,
   ChevronLeft,
   X,
-  Presentation,
-  Download
+  Presentation
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from 'react-markdown';
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
 
 // Initialize Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
@@ -43,9 +40,7 @@ export default function App() {
   const [question, setQuestion] = useState("");
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [isPresenting, setIsPresenting] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const printableRef = useRef<HTMLDivElement>(null);
 
   const parsedSlides = useMemo(() => {
     if (activeTab !== 'slides' || !output) return [];
@@ -101,43 +96,6 @@ export default function App() {
     }
   };
 
-  const downloadSlidesPDF = async () => {
-    if (parsedSlides.length === 0) return;
-    setIsExporting(true);
-    
-    try {
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'px',
-        format: [1280, 720]
-      });
-
-      const slideElements = document.querySelectorAll('.printable-slide-item');
-      
-      for (let i = 0; i < slideElements.length; i++) {
-        const element = slideElements[i] as HTMLElement;
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          backgroundColor: '#FF4500' 
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        
-        if (i > 0) pdf.addPage([1280, 720], 'landscape');
-        pdf.addImage(imgData, 'PNG', 0, 0, 1280, 720);
-      }
-
-      pdf.save(`${fileName.replace('.pdf', '')}_Presentasi.pdf`);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Gagal mengunduh PDF. Silakan gunakan fitur Cetak.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const processAI = async (mode: AppTab) => {
     if (!pdfText) return;
     setIsLoading(true);
@@ -175,16 +133,17 @@ export default function App() {
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-2.0-flash",
         contents: userPrompt,
         config: {
           systemInstruction: systemInstruction,
+          temperature: 0.7,
         }
       });
       setOutput(response.text || "Tidak ada hasil.");
-    } catch (error) {
-      console.error(error);
-      setOutput("Terjadi kesalahan saat memproses AI. Mohon coba lagi.");
+    } catch (error: any) {
+      console.error("AI Error:", error);
+      setOutput(`Terjadi kesalahan saat memproses AI: ${error.message || "Mohon coba lagi."}`);
     } finally {
       setIsLoading(false);
     }
@@ -197,47 +156,48 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#FBFBFB] text-slate-900 overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-slate-50 text-retro-purple">
       {/* Header */}
-      <header className="h-20 bg-white border-b border-slate-100 px-8 flex items-center justify-between shrink-0 shadow-sm z-50">
+      <header className="h-20 bg-retro-purple border-b border-white/10 px-4 lg:px-8 flex items-center justify-between shrink-0 shadow-2xl z-50 sticky top-0">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-retro-purple rounded-xl flex items-center justify-center shadow-indigo-200 shadow-lg">
+          <div className="w-10 h-10 bg-fresh-orange rounded-xl flex items-center justify-center shadow-orange-500/20 shadow-lg">
             <Sparkles className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Asisten Pengajar</h1>
-            <p className="text-xs font-medium text-fresh-orange uppercase tracking-widest">Solusi AI untuk Guru Juara</p>
+            <h1 className="text-xl font-black tracking-tight text-white uppercase italic">DapzAI</h1>
+            <p className="text-[10px] font-black text-fresh-orange uppercase tracking-[0.3em]">Asisten Pengajar</p>
           </div>
         </div>
         <div className="flex items-center gap-6">
           <div className="hidden md:flex items-center gap-3">
             <div className="flex -space-x-2">
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-200"></div>
-              <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-300"></div>
+              <div className="w-8 h-8 rounded-full border-2 border-retro-purple bg-white/10"></div>
+              <div className="w-8 h-8 rounded-full border-2 border-retro-purple bg-fresh-orange/20"></div>
             </div>
             <div className="text-right">
-              <p className="text-sm font-semibold leading-none text-slate-700">Profil Guru</p>
-              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Lencana Emas</p>
+              <p className="text-sm font-black leading-none text-white">Profil Guru</p>
+              <p className="text-[10px] text-fresh-orange font-black uppercase tracking-wider">Lencana Emas</p>
             </div>
           </div>
-          <div className="h-8 w-px bg-slate-100 hidden md:block"></div>
-          <button className="flex items-center gap-2 text-slate-400 hover:text-fresh-orange transition-colors text-sm font-medium">
-            <LogOut className="w-4 h-4" /> Keluar
+          <div className="h-8 w-px bg-white/10 hidden md:block"></div>
+          <button className="flex items-center gap-2 text-white/40 hover:text-fresh-orange transition-all text-sm font-black uppercase tracking-wider group">
+            <LogOut className="w-4 h-4 group-hover:translate-x-1 transition-transform" /> 
+            <span className="hidden sm:inline">KELUAR</span>
           </button>
         </div>
       </header>
 
-      <main className="flex-1 flex gap-6 p-6 overflow-hidden">
+      <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-6 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-80 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-2 shrink-0">
-          <section className="bg-white rounded-2xl p-5 border border-slate-200 shadow-soft">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Upload Center</h3>
+        <aside className="w-full lg:w-80 flex flex-col gap-6 overflow-y-auto custom-scrollbar pr-1 lg:pr-2 shrink-0">
+          <section className="bg-white rounded-[2rem] p-6 border-2 border-retro-purple/10 shadow-sm transition-transform hover:scale-[1.01]">
+            <h3 className="text-[10px] font-black text-retro-purple/30 uppercase tracking-[0.3em] mb-4">Upload Center</h3>
             <div 
               onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center transition-all cursor-pointer ${
                 pdfText 
-                  ? 'border-fresh-orange bg-orange-50/10' 
-                  : 'border-slate-200 hover:border-orange-300 hover:bg-slate-50 bg-white'
+                  ? 'border-fresh-orange bg-fresh-orange/5' 
+                  : 'border-retro-purple/10 hover:border-fresh-orange hover:bg-fresh-orange/5 bg-white'
               }`}
             >
               <input 
@@ -247,49 +207,50 @@ export default function App() {
                 accept="application/pdf"
                 className="hidden"
               />
-              <div className={`p-3 rounded-xl mb-2 ${pdfText ? 'bg-fresh-orange text-white' : 'bg-orange-50 text-fresh-orange'}`}>
+              <div className={`p-3 rounded-xl mb-2 ${pdfText ? 'bg-fresh-orange text-white' : 'bg-retro-purple/5 text-fresh-orange'}`}>
                 {isLoading && !pdfText ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
               </div>
-              <p className="text-sm font-bold text-fresh-orange truncate max-w-full px-2 text-center">
+              <p className="text-sm font-black text-retro-purple truncate max-w-full px-2 text-center uppercase tracking-tight">
                 {fileName || "Unggah PDF Materi"}
               </p>
-              <p className="text-[10px] text-slate-400 mt-1 font-medium tracking-tight">Format PDF • Maksimal 50MB</p>
+              <p className="text-[10px] text-retro-purple/40 mt-1 font-black tracking-widest uppercase">Format PDF • Maksimal 50MB</p>
             </div>
             
             {pdfText && !isLoading && (
-              <div className="mt-4 p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                <div className="bg-emerald-100 text-emerald-600 p-2 rounded-lg">
+              <div className="mt-4 p-3 bg-fresh-orange/5 border border-fresh-orange/10 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                <div className="bg-fresh-orange/10 text-fresh-orange p-2 rounded-lg">
                   <FileText className="w-4 h-4" />
                 </div>
                 <div className="overflow-hidden">
-                  <p className="text-xs font-bold truncate">Berhasil Dibaca</p>
-                  <p className="text-[10px] text-emerald-600 font-medium">{fileName}</p>
+                  <p className="text-xs font-black text-retro-purple truncate">Berhasil Dibaca</p>
+                  <p className="text-[10px] text-fresh-orange font-black uppercase tracking-tight">{fileName}</p>
                 </div>
               </div>
             )}
           </section>
 
-          <AnimatePresence>
-            {pdfText && (
-              <motion.section 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-2xl p-5 border border-slate-200 shadow-soft flex flex-col min-h-0"
-              >
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Command Center</h3>
-                
-                {/* Tabs Navigation */}
-                <div className="p-1 bg-slate-100/80 rounded-xl flex mb-4">
-                  {(['questions', 'summary', 'slides', 'chat'] as AppTab[]).map((tab) => (
-                    <button 
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all capitalize ${activeTab === tab ? 'bg-white shadow-sm text-fresh-orange' : 'text-slate-500'}`}
-                    >
-                      {tab === 'questions' ? 'Soal' : tab === 'summary' ? 'Ringkas' : tab === 'slides' ? 'Slide' : 'Tanya'}
-                    </button>
-                  ))}
+          <section className="bg-white rounded-2xl p-5 border border-retro-purple/10 shadow-sm flex flex-col min-h-0 relative">
+            {!pdfText && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-2xl">
+                <div className="bg-retro-purple text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl">
+                  Unggah File Untuk Membuka
                 </div>
+              </div>
+            )}
+            <h3 className="text-[10px] font-black text-retro-purple/30 uppercase tracking-[0.2em] mb-4">Command Center</h3>
+            
+            {/* Tabs Navigation */}
+            <div className="p-1 bg-retro-purple/5 rounded-xl flex mb-4">
+              {(['questions', 'summary', 'slides', 'chat'] as AppTab[]).map((tab) => (
+                <button 
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2 text-[10px] font-black rounded-lg transition-all uppercase tracking-wider ${activeTab === tab ? 'bg-fresh-orange text-white shadow-lg' : 'text-retro-purple/50 hover:text-retro-purple'}`}
+                >
+                  {tab === 'questions' ? 'Soal' : tab === 'summary' ? 'Ringkas' : tab === 'slides' ? 'Slide' : 'Tanya'}
+                </button>
+              ))}
+            </div>
 
                 <div className="space-y-4">
                   {activeTab === 'questions' && (
@@ -299,7 +260,7 @@ export default function App() {
                           <button
                             key={type}
                             onClick={() => setQType(type)}
-                            className={`px-3 py-2 text-[10px] font-bold border rounded-lg transition-all ${qType === type ? 'bg-orange-50 border-orange-200 text-fresh-orange' : 'bg-white border-slate-100 text-slate-500 hover:border-orange-100'}`}
+                            className={`px-3 py-2 text-[10px] font-black border rounded-lg transition-all uppercase tracking-wider ${qType === type ? 'bg-fresh-orange/10 border-fresh-orange text-fresh-orange' : 'bg-white border-retro-purple/10 text-retro-purple/40 hover:border-fresh-orange/50'}`}
                           >
                             {type === 'mcq' ? 'Pilihan Ganda' : type === 'essay' ? 'Essay' : type === 'true-false' ? 'B/S' : 'HOTS'}
                           </button>
@@ -344,7 +305,7 @@ export default function App() {
                         value={question}
                         onChange={(e) => setQuestion(e.target.value)}
                         placeholder="Contoh: Apa inti materi ini?"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:ring-2 focus:ring-orange-500/20 focus:border-fresh-orange outline-none transition-all resize-none h-20"
+                        className="w-full bg-white border border-retro-purple/10 rounded-xl p-3 text-xs focus:ring-2 focus:ring-fresh-orange/20 focus:border-fresh-orange outline-none transition-all resize-none h-20"
                       />
                       <button 
                         onClick={() => processAI('chat')}
@@ -357,73 +318,63 @@ export default function App() {
                     </div>
                   )}
                   
-                  <div className="pt-2 border-t border-slate-50">
-                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
-                      <BrainCircuit className="w-3 h-3" />
-                      Hallucination-Free Protocol Active
+                  <div className="pt-2 border-t border-retro-purple/5">
+                    <div className="flex items-center gap-2 text-[10px] text-retro-purple/40 font-black uppercase tracking-[0.1em]">
+                      <BrainCircuit className="w-3 h-3 text-fresh-orange" />
+                      Protocol Hallucination-Free Aktif
                     </div>
                   </div>
                 </div>
-              </motion.section>
-            )}
-          </AnimatePresence>
+              </section>
         </aside>
 
         {/* Output Section */}
-        <section className="flex-1 bg-white rounded-3xl border border-slate-200 shadow-soft flex flex-col overflow-hidden relative">
-          <div className="px-8 py-5 border-b border-slate-100 flex items-center justify-between bg-[#F8F9FA] shrink-0">
-            <div className="flex items-center gap-3">
-              <div className={`w-2.5 h-2.5 rounded-full ${isLoading ? 'bg-fresh-orange animate-pulse' : 'bg-emerald-500'}`}></div>
-              <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+        <section className="flex-1 bg-white rounded-[2rem] lg:rounded-[3rem] border-2 border-retro-purple/5 shadow-2xl flex flex-col overflow-hidden relative group">
+          <div className="px-6 lg:px-8 py-4 lg:py-6 border-b border-retro-purple/5 flex items-center justify-between bg-retro-purple shrink-0">
+            <div className="flex items-center gap-3 lg:gap-4">
+              <div className={`w-2.5 h-2.5 lg:w-3 h-3 rounded-full ${isLoading ? 'bg-fresh-orange animate-pulse shadow-[0_0_12px_#FF4500]' : 'bg-fresh-orange'}`}></div>
+              <h2 className="text-[10px] lg:text-xs font-black text-white/40 uppercase tracking-[0.25em]">
                 {activeTab === 'slides' ? 'MODUL PERSENTASI' : 'HASIL ANALISIS AI'}
               </h2>
             </div>
             {output && (
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 lg:gap-2">
                 {activeTab === 'slides' && parsedSlides.length > 0 && (
-                  <>
-                    <button 
-                      onClick={() => setIsPresenting(true)}
-                      className="px-4 py-2 text-xs font-bold text-white bg-fresh-orange rounded-xl hover:opacity-90 transition shadow-lg flex items-center gap-2"
-                    >
-                      <Presentation className="w-4 h-4" /> Buka Presentasi
-                    </button>
-                    <button 
-                      onClick={downloadSlidesPDF}
-                      disabled={isExporting}
-                      className="px-4 py-2 text-xs font-bold text-white bg-retro-purple rounded-xl hover:opacity-90 transition shadow-lg flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                      Download PDF
-                    </button>
-                  </>
+                  <button 
+                    onClick={() => setIsPresenting(true)}
+                    className="p-2 lg:px-4 lg:py-2 text-[10px] lg:text-xs font-black text-white bg-fresh-orange rounded-lg lg:rounded-xl hover:opacity-90 transition shadow-lg flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <Presentation className="w-4 h-4" /> 
+                    <span className="sm:inline">Presentasi</span>
+                  </button>
                 )}
                 <button 
                   onClick={() => window.print()}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 border border-slate-200 bg-white rounded-xl hover:bg-slate-50 transition flex items-center gap-2"
+                  className="p-2 lg:px-4 lg:py-2 text-[10px] lg:text-xs font-black text-retro-purple border border-retro-purple/10 bg-white rounded-lg lg:rounded-xl hover:bg-retro-purple/5 transition flex items-center gap-2 whitespace-nowrap"
                 >
-                  <Printer className="w-4 h-4" /> Cetak
+                  <Printer className="w-4 h-4" /> 
+                  <span className="sm:inline">Cetak</span>
                 </button>
                 <button 
                   onClick={copyToClipboard}
-                  className="px-4 py-2 text-xs font-bold text-white bg-slate-900 rounded-xl hover:bg-slate-800 transition shadow-lg flex items-center gap-2"
+                  className="p-2 lg:px-4 lg:py-2 text-[10px] lg:text-xs font-black text-white bg-retro-purple rounded-lg lg:rounded-xl hover:opacity-90 transition shadow-lg flex items-center gap-2 whitespace-nowrap"
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Clipboard className="w-4 h-4" />}
-                  {copied ? "Tersalin" : "Salin Hasil"}
+                  <span className="sm:inline">{copied ? "Tersalin" : "Salin"}</span>
                 </button>
               </div>
             )}
           </div>
 
-          <div className="flex-1 p-10 overflow-y-auto custom-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
+          <div className="flex-1 p-6 lg:p-10 overflow-y-auto custom-scrollbar bg-[radial-gradient(#1A003308_1px,transparent_1px)] [background-size:24px_24px]">
             {!output && !isLoading && (
               <div className="h-full flex flex-col items-center justify-center text-center space-y-6 opacity-30 select-none grayscale">
-                <div className="bg-slate-100 p-8 rounded-full">
-                  <MessageSquare className="w-16 h-16 text-slate-400" />
+                <div className="bg-retro-purple/5 p-6 lg:p-8 rounded-full border border-retro-purple/10">
+                  <MessageSquare className="w-12 h-12 lg:w-16 h-16 text-retro-purple/40" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-slate-900 tracking-tight">Kreativitas Menanti</p>
-                  <p className="text-sm mt-2 text-slate-500">Unggah file PDF Anda ke Upload Center untuk memulai <br /> transformasi materi ajar yang cerdas.</p>
+                  <p className="text-lg lg:text-xl font-black text-retro-purple tracking-tight uppercase">Kreativitas Menanti</p>
+                  <p className="text-xs lg:text-sm mt-2 text-retro-purple/60 font-black uppercase max-w-md mx-auto">Unggah file PDF Anda ke Upload Center untuk memulai transformasi materi ajar yang cerdas.</p>
                 </div>
               </div>
             )}
@@ -431,14 +382,14 @@ export default function App() {
             {isLoading && !output && (
               <div className="h-full flex flex-col items-center justify-center gap-4 text-fresh-orange">
                 <div className="relative">
-                  <div className="w-16 h-16 border-4 border-orange-50 border-t-fresh-orange rounded-full animate-spin"></div>
+                  <div className="w-16 h-16 border-4 border-fresh-orange/5 border-t-fresh-orange rounded-full animate-spin"></div>
                   <div className="absolute inset-0 flex items-center justify-center text-fresh-orange">
                     <Sparkles className="w-6 h-6 animate-pulse" />
                   </div>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-sm tracking-widest uppercase text-slate-700">AI Sedang Merumuskan</p>
-                  <p className="text-xs text-slate-400 mt-1">Hampir selesai, mohon tunggu sebentar...</p>
+                  <p className="font-black text-sm tracking-widest uppercase text-retro-purple">AI Sedang Merumuskan</p>
+                  <p className="text-[10px] text-retro-purple/40 mt-1 font-black uppercase tracking-widest">Hampir selesai, mohon tunggu sebentar...</p>
                 </div>
               </div>
             )}
@@ -450,44 +401,52 @@ export default function App() {
                 className="max-w-4xl mx-auto"
               >
                 {activeTab === 'slides' && parsedSlides.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                     {parsedSlides.map((slide, idx) => (
-                      <div 
+                      <motion.div 
                         key={idx} 
-                        className="aspect-video bg-white border border-slate-100 rounded-[2rem] shadow-sm hover:shadow-xl transition-all p-8 flex flex-col cursor-pointer group hover:border-fresh-orange relative overflow-hidden"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: idx * 0.05 }}
+                        className="aspect-video bg-fresh-orange border-none rounded-[3rem] shadow-2xl shadow-orange-900/10 p-10 flex flex-col cursor-pointer group relative overflow-hidden ring-1 ring-white/20"
                         onClick={() => {
                           setCurrentSlideIndex(idx);
                           setIsPresenting(true);
                         }}
                       >
-                        <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Maximize className="w-5 h-5 text-fresh-orange" />
+                        <div className="absolute inset-0 bg-[radial-gradient(#000_1px,transparent_1px)] opacity-[0.03] scale-150"></div>
+                        <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="bg-retro-purple p-3 rounded-2xl shadow-2xl">
+                             <Maximize className="w-6 h-6 text-white" />
+                          </div>
                         </div>
-                        <div className="flex justify-between items-start mb-4">
-                          <span className="text-[10px] font-black text-fresh-orange/40 uppercase tracking-[0.3em]">Slide {String(idx + 1).padStart(2, '0')}</span>
+                        <div className="flex justify-between items-start mb-6">
+                          <span className="text-[11px] font-black text-retro-purple tracking-[0.4em] uppercase opacity-40">SLIDE {String(idx + 1).padStart(2, '0')}</span>
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 mb-4 line-clamp-2 leading-tight">
+                        <h3 className="text-2xl font-black text-retro-purple mb-6 line-clamp-2 leading-tight tracking-tight">
                           {slide.title}
                         </h3>
                         <div className="flex-1 overflow-hidden">
-                          <div className="text-xs text-slate-500 leading-relaxed space-y-1 prose prose-sm">
+                          <div className="text-sm font-bold text-retro-purple/80 leading-relaxed space-y-2 prose prose-sm prose-p:my-1 prose-li:my-0.5">
                             <ReactMarkdown>{slide.content.split('Saran Visual')[0]}</ReactMarkdown>
                           </div>
                         </div>
                         {slide.content.includes('Saran Visual') && (
-                          <div className="mt-4 pt-4 border-t border-slate-50 bg-slate-50 -mx-8 -mb-8 px-8 py-3">
-                            <p className="text-[10px] text-slate-500 italic flex items-center gap-2">
-                              <Sparkles className="w-3 h-3 text-fresh-orange" />
-                              {slide.content.split('Saran Visual')[1]?.replace(/^[:\s]*/, '')}
-                            </p>
+                          <div className="mt-6 pt-5 border-t border-retro-purple/10 flex items-center gap-4">
+                             <div className="w-10 h-10 rounded-full bg-retro-purple/10 flex items-center justify-center shrink-0">
+                               <Sparkles className="w-5 h-5 text-retro-purple" />
+                             </div>
+                             <p className="text-[11px] text-retro-purple/60 font-bold italic leading-tight line-clamp-1">
+                               {slide.content.split('Saran Visual')[1]?.replace(/^[:\s]*/, '')}
+                             </p>
                           </div>
                         )}
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-white p-12 shadow-2xl border border-slate-50 min-h-full rounded-[2.5rem]">
-                    <div className="prose prose-slate prose-lg max-w-none text-slate-800 printable-content">
+                  <div className="bg-white p-12 shadow-2xl border border-retro-purple/5 min-h-full rounded-[2.5rem]">
+                    <div className="prose prose-lg max-w-none text-retro-purple printable-content prose-headings:text-retro-purple prose-strong:text-retro-purple prose-p:leading-relaxed">
                       <ReactMarkdown>{output}</ReactMarkdown>
                     </div>
                   </div>
@@ -496,7 +455,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Presentation Modal */}
           <AnimatePresence>
             {isPresenting && parsedSlides.length > 0 && (
               <motion.div 
@@ -506,81 +464,75 @@ export default function App() {
                 className="fixed inset-0 z-[100] bg-retro-purple flex flex-col items-center"
               >
                 {/* Decoration */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full pointer-events-none opacity-5 overflow-hidden">
-                  <div className="absolute -top-20 -left-20 w-96 h-96 bg-white rounded-full blur-[100px]"></div>
-                  <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-fresh-orange rounded-full blur-[100px]"></div>
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                  <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fresh-orange/5 rounded-full blur-[120px] -mr-48 -mt-48"></div>
+                  <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-fresh-orange/5 rounded-full blur-[120px] -ml-48 -mb-48"></div>
                 </div>
 
                 {/* Header Controls */}
-                <div className="h-20 w-full flex items-center justify-between px-12 z-10 shrink-0">
-                  <div className="flex items-center gap-5">
-                    <div className="bg-white p-2 rounded-xl shadow-xl">
-                      <Presentation className="w-5 h-5 text-retro-purple" />
+                <div className="h-20 w-full flex items-center justify-between px-6 lg:px-12 z-10 shrink-0 border-b border-white/5 bg-retro-purple/40 backdrop-blur-md">
+                  <div className="flex items-center gap-3 lg:gap-5">
+                    <div className="bg-fresh-orange p-2 lg:p-3 rounded-xl lg:rounded-2xl shadow-2xl shadow-orange-950/50">
+                      <Presentation className="w-5 h-5 lg:w-6 h-6 text-white" />
                     </div>
-                    <div className="text-white">
-                      <h2 className="text-lg font-black tracking-tight">{fileName}</h2>
-                      <p className="text-[10px] font-bold text-fresh-orange uppercase tracking-widest opacity-80">Presenter Mode Active</p>
+                    <div className="text-white overflow-hidden max-w-[150px] lg:max-w-none">
+                      <h2 className="text-lg lg:text-xl font-black tracking-tight leading-tight truncate">{fileName}</h2>
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Presenter Dashboard</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-6">
-                    <div className="px-5 py-2 bg-black/20 backdrop-blur-xl rounded-2xl border border-white/10 text-white flex items-center gap-3">
-                      <span className="text-[10px] font-black opacity-50">PROGRESS</span>
-                      <span className="text-sm font-black tabular-nums">{currentSlideIndex + 1} <span className="opacity-30">/</span> {parsedSlides.length}</span>
+                  <div className="flex items-center gap-2 lg:gap-4">
+                    <div className="px-4 lg:px-6 py-2 lg:py-2.5 bg-white/5 rounded-2xl border border-white/10 text-white flex items-center gap-2 lg:gap-4 shadow-inner">
+                      <span className="text-[9px] lg:text-[10px] font-black tracking-widest text-fresh-orange">SLIDE</span>
+                      <span className="text-sm lg:text-lg font-black tabular-nums">{currentSlideIndex + 1} <span className="text-white/20">/</span> {parsedSlides.length}</span>
                     </div>
-                    <button 
-                      onClick={() => window.print()}
-                      className="p-3 bg-white/10 hover:bg-white text-white hover:text-retro-purple rounded-2xl transition-all shadow-xl backdrop-blur-md"
-                    >
-                      <Printer className="w-5 h-5" />
-                    </button>
+                    <div className="h-8 w-px bg-white/10 mx-1 lg:mx-2"></div>
                     <button 
                       onClick={() => setIsPresenting(false)}
-                      className="p-3 bg-white/10 hover:bg-white text-white hover:text-retro-purple rounded-2xl transition-all shadow-xl backdrop-blur-md"
+                      className="p-2 lg:p-3 bg-fresh-orange/10 hover:bg-fresh-orange text-fresh-orange hover:text-white rounded-xl lg:rounded-2xl transition-all shadow-xl backdrop-blur-md border border-fresh-orange/20"
                     >
-                      <X className="w-6 h-6" />
+                      <X className="w-5 h-5 lg:w-6 h-6" />
                     </button>
                   </div>
-                </div>
-
-                {/* Slide Content */}
-                <div className="flex-1 w-full flex items-center justify-center px-12 py-10 z-10 overflow-hidden">
+                </div>                {/* Slide Content */}
+                <div className="flex-1 w-full flex items-center justify-center px-4 lg:px-12 py-4 lg:py-6 z-10 overflow-hidden mt-2 lg:mt-4">
                   <AnimatePresence mode="wait">
                     <motion.div 
                       key={currentSlideIndex}
-                      initial={{ scale: 0.9, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 1.1, opacity: 0 }}
-                      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                      className="aspect-video w-full max-w-6xl bg-fresh-orange rounded-[4rem] shadow-[0_60px_100px_-20px_rgba(0,0,0,0.6)] flex flex-col p-16 relative overflow-hidden"
+                      initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 1.05, opacity: 0, y: -10 }}
+                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                      className="aspect-video w-full max-w-5xl bg-fresh-orange rounded-[3rem] shadow-[0_40px_100px_-20px_rgba(26,0,51,0.4)] flex flex-col p-12 lg:p-14 relative overflow-hidden group border-4 border-white/10"
                     >
-                      {/* Slide Interior Grid */}
-                      <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:30px_30px]"></div>
-
-                      <div className="mb-10 relative z-10">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="h-px flex-1 bg-white/20" />
-                          <span className="text-retro-purple font-black tracking-[0.5em] text-[10px] uppercase">TOPIC OVERVIEW</span>
-                          <div className="h-px flex-1 bg-white/20" />
+                      {/* Decorative elements */}
+                      <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -tr-32 -tt-32"></div>
+                      
+                      <div className="mb-6 relative z-10">
+                        <div className="flex items-center gap-6 mb-3">
+                          <div className="h-[2px] w-12 bg-retro-purple/30" />
+                          <span className="text-retro-purple font-black tracking-[0.6em] text-[10px] uppercase opacity-70">MODUL PEMBELAJARAN</span>
+                          <div className="h-[2px] flex-1 bg-retro-purple/10" />
                         </div>
-                        <h1 className="text-4xl lg:text-6xl font-black text-retro-purple leading-[1.1] tracking-tight line-clamp-2">
+                        <h1 className="text-xl lg:text-3xl font-black text-retro-purple leading-[1.05] tracking-tight line-clamp-2">
                           {parsedSlides[currentSlideIndex].title}
                         </h1>
                       </div>
-
-                      <div className="flex-1 text-base lg:text-lg text-retro-purple font-bold leading-snug relative z-10 overflow-hidden">
-                        <div className="prose prose-sm lg:prose-base max-w-none prose-p:my-1 prose-li:my-0.5 text-retro-purple">
+ 
+                      <div className="flex-1 text-xs lg:text-sm text-retro-purple font-black leading-relaxed relative z-10 overflow-hidden flex flex-col justify-center">
+                        <div className="prose prose-xs lg:prose-base max-w-none prose-p:my-0.5 prose-li:my-0 text-retro-purple prose-headings:text-retro-purple prose-strong:text-retro-purple">
                           <ReactMarkdown>{parsedSlides[currentSlideIndex].content.split('Saran Visual')[0]}</ReactMarkdown>
                         </div>
                       </div>
 
                       {parsedSlides[currentSlideIndex].content.includes('Saran Visual') && (
-                        <div className="mt-8 pt-6 border-t border-retro-purple/10 flex items-center gap-4 relative z-10">
-                          <div className="bg-retro-purple p-2 rounded-2xl shadow-lg">
+                        <div className="mt-8 pt-6 border-t border-retro-purple/10 flex items-center gap-6 relative z-10">
+                          <div className="bg-retro-purple p-3 rounded-[1.2rem] shadow-2xl">
                             <Sparkles className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <p className="text-[10px] font-black text-retro-purple tracking-widest uppercase mb-0.5">Visual Inspiration</p>
-                            <p className="text-xs text-retro-purple/70 font-bold italic leading-tight line-clamp-1">
+                            <p className="text-[10px] font-black text-retro-purple tracking-[0.2em] uppercase mb-1 opacity-60">Saran Visual AI</p>
+                            <p className="text-sm text-retro-purple/80 font-bold italic leading-tight">
                               {parsedSlides[currentSlideIndex].content.split('Saran Visual')[1]?.replace(/^[:\s]*/, '')}
                             </p>
                           </div>
@@ -590,38 +542,55 @@ export default function App() {
                   </AnimatePresence>
                 </div>
 
+                {/* Progress Bar Container */}
+                <div className="w-full max-w-5xl px-12 mb-4 z-10">
+                   <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${((currentSlideIndex + 1) / parsedSlides.length) * 100}%` }}
+                        className="h-full bg-fresh-orange shadow-[0_0_15px_rgba(255,69,0,0.5)]"
+                      />
+                   </div>
+                </div>
+
                 {/* Navigation Controls */}
-                <div className="h-32 w-full flex items-center justify-center gap-12 z-10 shrink-0">
+                <div className="h-24 lg:h-28 w-full flex items-center justify-center gap-4 lg:gap-10 z-10 shrink-0 mb-4 lg:mb-0">
                   <button 
                     disabled={currentSlideIndex === 0}
                     onClick={() => setCurrentSlideIndex(prev => Math.max(0, prev - 1))}
-                    className="group flex items-center gap-4 text-white disabled:opacity-20 transition-all font-black text-xs tracking-widest hover:scale-105 active:scale-95"
+                    className="group flex flex-col items-center gap-2 text-white disabled:opacity-10 transition-all active:scale-90"
                   >
-                    <div className="p-5 bg-white/10 group-hover:bg-white/20 rounded-[2rem] border border-white/10 backdrop-blur-md">
-                      <ChevronLeft className="w-8 h-8" />
+                    <div className="p-4 lg:p-5 bg-white/5 hover:bg-white/10 rounded-[1.5rem] lg:rounded-[2rem] border border-white/10 backdrop-blur-md transition-colors shadow-2xl">
+                      <ChevronLeft className="w-6 h-6 lg:w-8 h-8" />
                     </div>
-                    PREVIOUS
+                    <span className="font-black text-[8px] lg:text-[9px] tracking-[0.3em] opacity-30 group-hover:opacity-100 transition-opacity uppercase">Kembali</span>
                   </button>
 
-                  <div className="flex gap-3">
-                    {parsedSlides.map((_, i) => (
-                      <button 
-                        key={i} 
-                        onClick={() => setCurrentSlideIndex(i)}
-                        className={`transition-all rounded-full h-2.5 ${i === currentSlideIndex ? 'w-12 bg-fresh-orange' : 'w-2.5 bg-white/20 hover:bg-white/40'}`}
-                      />
-                    ))}
+                  <div className="px-6 lg:px-10 py-3 lg:py-4 bg-retro-purple/60 backdrop-blur-3xl rounded-[1.5rem] lg:rounded-[2rem] border border-white/10 shadow-2xl flex items-center gap-4 lg:gap-6">
+                    <div className="flex gap-1.5 lg:gap-2 overflow-hidden max-w-[100px] lg:max-w-none">
+                       {parsedSlides.map((_, i) => (
+                         <button
+                           key={i}
+                           onClick={() => setCurrentSlideIndex(i)}
+                           className={`h-1 lg:h-1.5 transition-all rounded-full ${i === currentSlideIndex ? 'w-6 lg:w-10 bg-fresh-orange' : 'w-1 lg:w-1.5 bg-white/20 hover:bg-white/40'}`}
+                         />
+                       ))}
+                    </div>
+                    <div className="h-4 w-px bg-white/10"></div>
+                    <span className="text-white font-black text-[10px] lg:text-xs tabular-nums tracking-widest uppercase shrink-0">
+                      {currentSlideIndex + 1} <span className="opacity-20 mx-0.5 lg:mx-1">/</span> {parsedSlides.length}
+                    </span>
                   </div>
 
                   <button 
                     disabled={currentSlideIndex === parsedSlides.length - 1}
                     onClick={() => setCurrentSlideIndex(prev => Math.min(parsedSlides.length - 1, prev + 1))}
-                    className="group flex items-center gap-4 text-white disabled:opacity-20 transition-all font-black text-xs tracking-widest hover:scale-105 active:scale-95"
+                    className="group flex flex-col items-center gap-2 text-white disabled:opacity-10 transition-all active:scale-90"
                   >
-                    NEXT
-                    <div className="p-6 bg-fresh-orange text-retro-purple rounded-[2.5rem] shadow-2xl shadow-black/20">
-                      <ChevronRight className="w-10 h-10" />
+                    <div className="p-5 lg:p-6 bg-fresh-orange text-retro-purple rounded-[2rem] lg:rounded-[2.5rem] shadow-[0_20px_50px_-10px_rgba(255,69,0,0.4)] hover:scale-105 transition-all ring-4 ring-fresh-orange/20">
+                      <ChevronRight className="w-8 h-8 lg:w-10 h-10" />
                     </div>
+                    <span className="font-black text-[8px] lg:text-[9px] tracking-[0.3em] text-fresh-orange uppercase tracking-[0.4em]">Selanjutnya</span>
                   </button>
                 </div>
               </motion.div>
@@ -630,62 +599,15 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="h-10 bg-slate-900 px-8 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
-        <div>&copy; Daffa - 2026 Asisten Pengajar </div>
+      <footer className="h-10 bg-retro-purple px-8 flex items-center justify-between text-[10px] text-white/50 shrink-0 border-t border-white/5">
+        <div className="font-black uppercase tracking-widest">&copy; DapzAI - 2026 Asisten Pengajar </div>
         <div className="flex gap-6 items-center">
-          <span className="flex items-center gap-1.5 font-medium">
-            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-            Koneksi Aman
+          <span className="flex items-center gap-1.5 font-black uppercase tracking-tight">
+            <span className="w-1.5 h-1.5 bg-fresh-orange rounded-full animate-pulse shadow-[0_0_5px_#FF4500]"></span>
+            Enkripsi AI Aktif
           </span>
-    
         </div>
       </footer>
-
-      {/* Hidden Printable Area for Slides */}
-      <div className="hidden">
-        <div ref={printableRef} id="printable-slides">
-          {parsedSlides.map((slide, idx) => (
-            <div 
-              key={idx} 
-              className="printable-slide-item w-[1280px] h-[720px] bg-fresh-orange flex flex-col p-16 relative overflow-hidden"
-              style={{ pageBreakAfter: 'always' }}
-            >
-              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:30px_30px]"></div>
-              
-              <div className="mb-10 relative z-10">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="h-px flex-1 bg-white/20" />
-                  <span className="text-retro-purple font-black tracking-[0.5em] text-[10px] uppercase">TOPIC OVERVIEW</span>
-                  <div className="h-px flex-1 bg-white/20" />
-                </div>
-                <h1 className="text-6xl font-black text-retro-purple leading-[1.1] tracking-tight">
-                  {slide.title}
-                </h1>
-              </div>
-
-              <div className="flex-1 text-2xl text-retro-purple font-bold leading-snug relative z-10 overflow-hidden">
-                <div className="prose prose-xl max-w-none text-retro-purple">
-                  <ReactMarkdown>{slide.content.split('Saran Visual')[0]}</ReactMarkdown>
-                </div>
-              </div>
-
-              {slide.content.includes('Saran Visual') && (
-                <div className="mt-8 pt-6 border-t border-retro-purple/10 flex items-center gap-4 relative z-10">
-                  <div className="bg-retro-purple p-2 rounded-2xl shadow-lg">
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-retro-purple tracking-widest uppercase mb-0.5">Visual Inspiration</p>
-                    <p className="text-sm text-retro-purple/70 font-bold italic leading-tight">
-                      {slide.content.split('Saran Visual')[1]?.replace(/^[:\s]*/, '')}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

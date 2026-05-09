@@ -10,8 +10,15 @@
   --color-fresh-orange: #FF4500;
 }
 
+/* Fix for html2canvas and older parsers that don't support oklch/oklab */
+* {
+  --tw-ring-color: rgba(59, 130, 246, 0.5);
+  --tw-ring-offset-color: #fff;
+  --tw-shadow-color: rgba(0, 0, 0, 0.1);
+}
+
 body {
-  @apply font-sans bg-[#FBFBFB] text-slate-900;
+  @apply font-sans bg-white text-retro-purple;
 }
 
 .shadow-soft {
@@ -64,8 +71,12 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #1A003366;
   border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #FF450066;
 }
 
 .glass-panel {
